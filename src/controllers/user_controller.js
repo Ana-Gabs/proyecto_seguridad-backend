@@ -83,19 +83,16 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { emailOrUsername, password } = req.body;
-    console.log("Datos de entrada:", req.body);
-
     let userSnap = await db.collection("users").where("email", "==", emailOrUsername).get();
+
     if (userSnap.empty) {
       userSnap = await db.collection("users").where("username", "==", emailOrUsername).get();
     }
-    console.log("Usuario encontrado:", userSnap);
 
     if (userSnap.empty) return res.status(401).json({ error: "Credenciales incorrectas." });
 
     const userDoc = userSnap.docs[0];
     const userData = userDoc.data();
-    console.log("Datos del usuario:", userData);
 
     if (!await bcrypt.compare(password, userData.password)) {
       return res.status(401).json({ error: "Credenciales incorrectas." });
@@ -106,8 +103,6 @@ exports.login = async (req, res) => {
     }
 
     const token = jwt.sign({ email: userData.email }, process.env.JWT_SECRET, { expiresIn: "1h" });
-    console.log("Token generado:", token);
-
     await userDoc.ref.update({ last_login: new Date() });
 
     await logAction(req, userData.email, "login");
@@ -118,7 +113,6 @@ exports.login = async (req, res) => {
     res.status(500).json({ error: "Error en el login." });
   }
 };
-
 
 // Verificar OTP
 exports.verifyOtp = async (req, res) => {
