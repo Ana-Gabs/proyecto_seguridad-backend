@@ -1,12 +1,11 @@
 // ./utils/logger.js
-// ./utils/logger.js
 const { db } = require("../config/firebase");
 const os = require("os");
 
 /**
  * Registra una acción en la colección "logs" de Firestore.
  * @param {Object} req - Objeto de solicitud HTTP para obtener IP y User-Agent.
- * @param {Object} res - Objeto de respuesta HTTP para medir el tiempo de respuesta.
+ * @param {Object} res - Objeto de respuesta HTTP para obtener el código de estado y el tiempo de respuesta.
  * @param {string} email - Correo del usuario relacionado con la acción.
  * @param {string} action - Acción realizada (ejemplo: "login", "register", etc.).
  * @param {string} logLevel - Nivel de log ("info", "warn", "error").
@@ -15,28 +14,30 @@ const logAction = async (req, res, email, action, logLevel = "info") => {
   try {
     const startTime = process.hrtime(); // Inicia el temporizador
 
-    res.on("finish", async () => {
+    // Usa el evento "finish" para calcular el tiempo de respuesta después de que se haya procesado la solicitud.
+    res.on('finish', async () => {
       const diff = process.hrtime(startTime); // Obtiene el tiempo transcurrido
       const responseTime = diff[0] * 1e3 + diff[1] * 1e-6; // Convierte a ms
 
+      // Aquí agregas los logs a Firestore con todos los detalles adicionales.
       await db.collection("logs").add({
         email,
         action,
-        logLevel, // Nivel de log
+        logLevel,  // Nivel de log
         timestamp: new Date(),
-        ip: req.ip || "Unknown",
-        userAgent: req.headers["user-agent"] || "Unknown",
-        referer: req.headers["referer"] || "Unknown",
-        origin: req.headers["origin"] || "Unknown",
-        method: req.method || "Unknown",
-        url: req.originalUrl || "Unknown",
-        status: res.statusCode, // Código de estado de la respuesta
-        responseTime: responseTime.toFixed(2), // Tiempo de respuesta en ms
-        protocol: req.protocol || "Unknown",
-        hostname: os.hostname(), // Nombre del servidor
-        environment: process.env.NODE_ENV || "development",
-        nodeVersion: process.version,
-        pid: process.pid,
+        ip: req.ip || "Unknown",  // Dirección IP del cliente
+        userAgent: req.headers["user-agent"] || "Unknown", // Información sobre el navegador del cliente
+        referer: req.headers["referer"] || "Unknown",  // Referer de la solicitud (si existe)
+        origin: req.headers["origin"] || "Unknown",  // Origen de la solicitud (si existe)
+        method: req.method,  // Método HTTP (GET, POST, etc.)
+        url: req.originalUrl,  // URL solicitada
+        status: res.statusCode,  // Código de estado de la respuesta HTTP
+        responseTime: responseTime.toFixed(2),  // Tiempo de respuesta en milisegundos
+        protocol: req.protocol || "Unknown",  // Protocolo usado (http/https)
+        hostname: os.hostname(),  // Nombre del servidor
+        environment: process.env.NODE_ENV || "development",  // Entorno en el que se ejecuta el servidor
+        nodeVersion: process.version,  // Versión de Node.js
+        pid: process.pid  // ID del proceso
       });
     });
   } catch (error) {
