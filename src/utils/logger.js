@@ -1,4 +1,3 @@
-// ./utils/logger.js
 const { db } = require("../config/firebase");
 const os = require("os");
 
@@ -19,11 +18,15 @@ const logAction = async (req, res, email, action, logLevel = "info") => {
       const diff = process.hrtime(startTime); // Obtiene el tiempo transcurrido
       const responseTime = diff[0] * 1e3 + diff[1] * 1e-6; // Convierte a ms
 
-      // Aquí agregas los logs a Firestore con todos los detalles adicionales.
+      // Determina el nivel de log basado en el código de estado
+      const statusCode = res.statusCode || 500; // Si no se encuentra el código, asumimos 500 como predeterminado
+      const dynamicLogLevel = statusCode >= 400 ? "error" : "info"; // Si el código es >= 400, es un error
+
+      // Aquí agregamos los logs a Firestore con todos los detalles adicionales.
       await db.collection("logs").add({
         email,
         action,
-        logLevel,  // Nivel de log
+        logLevel: logLevel || dynamicLogLevel,  // Nivel de log
         timestamp: new Date(),
         ip: req.ip || "Unknown",  // Dirección IP del cliente
         userAgent: req.headers["user-agent"] || "Unknown", // Información sobre el navegador del cliente
@@ -31,7 +34,7 @@ const logAction = async (req, res, email, action, logLevel = "info") => {
         origin: req.headers["origin"] || "Unknown",  // Origen de la solicitud (si existe)
         method: req.method,  // Método HTTP (GET, POST, etc.)
         url: req.originalUrl,  // URL solicitada
-        status: res.statusCode,  // Código de estado de la respuesta HTTP
+        status: statusCode,  // Código de estado de la respuesta HTTP
         responseTime: responseTime.toFixed(2),  // Tiempo de respuesta en milisegundos
         protocol: req.protocol || "Unknown",  // Protocolo usado (http/https)
         hostname: os.hostname(),  // Nombre del servidor

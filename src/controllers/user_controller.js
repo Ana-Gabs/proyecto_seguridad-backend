@@ -23,14 +23,14 @@ exports.getInfo = async (req, res) => {
     };
 
     // Llamada para registrar el log con nivel "info"
-    await logAction(req, "anonymous", "getInfo", "info");
+    await logAction(req, res, "anonymous", "getInfo", "info");
 
     res.json(info);
   } catch (error) {
     console.error("Error al obtener info:", error);
 
     // Llamada para registrar el log con nivel "error"
-    await logAction(req, "anonymous", "getInfo-error", "error");
+    await logAction(req, res, "anonymous", "getInfo-error", "error");
 
     res.status(500).json({ error: "Error interno del servidor" });
   }
